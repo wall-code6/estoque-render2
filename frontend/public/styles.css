@@ -3,3 +3,52 @@
 .camera-status{font-size:12px;color:var(--blue2);background:#e8f3fc;border-radius:7px;padding:9px 11px;margin:8px 0 14px}
 
 .consume-box{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}.consume-box h4{margin:0 0 8px}.consume-button{width:100%;border:0;border-radius:8px;padding:12px;background:#397b3e;color:white;font-weight:800;margin-top:8px}.consume-button:hover{background:#2f6935}.consumed-note{padding:12px;border-radius:8px;background:#edf7ef;color:#2f6935;font-weight:700}
+
+
+/* Cabecalho moderno da pagina atual */
+.page-header {
+  min-height: 96px;
+  margin: 0 0 28px;
+  padding: 20px 24px;
+  border: 1px solid rgba(25,111,194,.14);
+  border-radius: 18px;
+  background: linear-gradient(135deg,#ffffff 0%,#f6faff 62%,#eaf4ff 100%);
+  box-shadow: 0 10px 30px rgba(7,21,38,.07);
+}
+.current-section {
+  position: relative;
+  padding-left: 18px;
+}
+.current-section::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 5px;
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(180deg,var(--blue),var(--blue2));
+  box-shadow: 0 4px 12px rgba(25,111,194,.30);
+}
+.current-section-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+}
+.page-header #pageTitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(27px,3vw,36px);
+  font-weight: 800;
+  letter-spacing: -.9px;
+  line-height: 1.1;
+}
+@media(max-width:850px){
+  .page-header{min-height:82px;padding:16px 18px;border-radius:14px;margin-bottom:20px}
+  .current-section::before{height:44px}
+  .current-section-label{font-size:9px}
+}
