@@ -52,3 +52,12 @@
   .current-section::before{height:44px}
   .current-section-label{font-size:9px}
 }
+
+
+/* Cabecalho compacto, apenas com o nome do menu */
+.page-header{min-height:0!important;margin:0 0 18px!important;padding:13px 18px!important;border-radius:13px!important}
+.current-section{padding-left:14px!important}
+.current-section::before{top:0!important;width:4px!important;height:34px!important}
+.current-section-label{display:none!important}
+.page-header #pageTitle{font-size:27px!important;line-height:34px!important}
+@media(max-width:850px){.page-header{min-height:0!important;margin-bottom:15px!important;padding:11px 14px!important}.current-section::before{height:30px!important}.page-header #pageTitle{font-size:24px!important;line-height:30px!important}}
