@@ -15,32 +15,30 @@ function renderHome(){
  const activeProducts=state.products.filter(p=>p.active!==false);
  const balance=new Map(activeProducts.map(p=>[p.id,0]));
  state.batches.forEach(b=>balance.set(b.product_id,(balance.get(b.product_id)||0)+Number(b.current_quantity||0)));
- const lowProducts=activeProducts.map(p=>({...p,current:balance.get(p.id)||0})).filter(p=>p.current<Number(p.minimum_stock||0)).sort((a,b)=>(a.current/Math.max(a.minimum_stock,1))-(b.current/Math.max(b.minimum_stock,1))).slice(0,6);
- const expiring=[...(state.alerts.expired||[]).map(x=>({...x,status:'Vencido'})),...(state.alerts.expiring||[]).map(x=>({...x,status:'Vence em breve'}))].sort((a,b)=>String(a.expiration_date).localeCompare(String(b.expiration_date))).slice(0,6);
+ const lowProducts=activeProducts.map(p=>({...p,current:balance.get(p.id)||0})).filter(p=>p.current<Number(p.minimum_stock||0)).sort((a,b)=>a.current-b.current).slice(0,6);
+ const expiring=[...(state.alerts.expired||[]).map(x=>({...x,status:'Vencido'})),...(state.alerts.expiring||[]).map(x=>({...x,status:'Próximo'}))].sort((a,b)=>String(a.expiration_date).localeCompare(String(b.expiration_date))).slice(0,6);
  const recent=state.movements.slice(0,7);
- const totalAlertQty=expiring.reduce((n,x)=>n+Number(x.current_quantity||0),0);
- const maxLow=Math.max(1,...lowProducts.map(x=>Number(x.minimum_stock||1)));
- const movementLabel=t=>({entry:'Entrada',consumption:'Consumo',loss:'Perda',expired:'Vencido',positive_adjustment:'Ajuste +',negative_adjustment:'Ajuste -'}[t]||String(t||'Movimento').replaceAll('_',' '));
+ const movementLabel=t=>({entry:'Entrada',consumption:'Consumo',loss:'Perda',expired:'Vencido',positive_adjustment:'Ajuste positivo',negative_adjustment:'Ajuste negativo'}[t]||String(t||'Movimento').replaceAll('_',' '));
  const movementClass=t=>t==='entry'||t==='positive_adjustment'?'positive':t==='consumption'?'consume':'negative';
  $('#homePage').innerHTML=`
- <div class="dashboard-cards">
-  <article class="metric-card metric-blue"><div class="metric-icon">▣</div><div><small>Produtos cadastrados</small><b>${s.products}</b><span>itens ativos no catálogo</span></div></article>
-  <article class="metric-card metric-green"><div class="metric-icon">▤</div><div><small>Quantidade em estoque</small><b>${Number(s.stock||0).toLocaleString('pt-BR')}</b><span>somando todos os lotes</span></div></article>
-  <article class="metric-card metric-orange"><div class="metric-icon">!</div><div><small>Produtos com estoque baixo</small><b>${s.low}</b><span>abaixo do mínimo definido</span></div></article>
-  <article class="metric-card metric-red"><div class="metric-icon">⌛</div><div><small>Lotes vencendo ou vencidos</small><b>${s.alerts}</b><span>${totalAlertQty.toLocaleString('pt-BR')} unidades em alerta</span></div></article>
+ <div class="dashboard-cards clean-metrics">
+  <article class="metric-card"><small>Produtos</small><b>${s.products}</b><span>Cadastrados</span></article>
+  <article class="metric-card"><small>Estoque atual</small><b>${Number(s.stock||0).toLocaleString('pt-BR')}</b><span>Unidades disponíveis</span></article>
+  <article class="metric-card metric-attention"><small>Estoque baixo</small><b>${s.low}</b><span>Precisam de reposição</span></article>
+  <article class="metric-card metric-critical"><small>Validade</small><b>${s.alerts}</b><span>Lotes em atenção</span></article>
  </div>
- <div class="dashboard-grid">
-  <section class="dashboard-panel expiry-panel">
-   <div class="panel-heading"><div><small>VALIDADE</small><h3>Produtos vencendo</h3></div><span class="panel-count">${expiring.length}</span></div>
-   <div class="dashboard-list">${expiring.length?expiring.map(x=>`<div class="dashboard-row"><div class="row-product"><span class="status-dot ${x.status==='Vencido'?'danger':'warning'}"></span><div><b>${productName(x.product_id)}</b><small>Lote ${x.lot_number||x.id} · ${Number(x.current_quantity||0).toLocaleString('pt-BR')} un.</small></div></div><div class="expiry-info"><strong>${fmtDate(x.expiration_date)}</strong><span class="status-pill ${x.status==='Vencido'?'danger':'warning'}">${x.status}</span></div></div>`).join(''):'<div class="empty-state">Nenhum produto próximo do vencimento.</div>'}</div>
+ <div class="dashboard-grid clean-dashboard">
+  <section class="dashboard-panel">
+   <div class="panel-heading"><div><h3>Validades próximas</h3><p>Lotes vencidos ou com vencimento em até 30 dias</p></div><span class="panel-total">${expiring.length}</span></div>
+   <div class="dashboard-list">${expiring.length?expiring.map(x=>`<div class="dashboard-row"><div class="row-product"><span class="status-line ${x.status==='Vencido'?'danger':'warning'}"></span><div><b>${productName(x.product_id)}</b><small>Lote ${x.lot_number||x.id} · ${Number(x.current_quantity||0).toLocaleString('pt-BR')} un.</small></div></div><div class="expiry-info"><strong>${fmtDate(x.expiration_date)}</strong><small class="plain-status ${x.status==='Vencido'?'danger':'warning'}">${x.status}</small></div></div>`).join(''):'<div class="empty-state">Nenhum lote em atenção.</div>'}</div>
   </section>
-  <section class="dashboard-panel low-panel">
-   <div class="panel-heading"><div><small>REPOSIÇÃO</small><h3>Quantidades baixas</h3></div><span class="panel-count warning">${s.low}</span></div>
-   <div class="dashboard-list">${lowProducts.length?lowProducts.map(x=>`<div class="stock-low-row"><div class="stock-low-head"><div><b>${x.name}</b><small>${x.category||'Sem categoria'}</small></div><strong>${Number(x.current).toLocaleString('pt-BR')} / ${Number(x.minimum_stock).toLocaleString('pt-BR')} ${x.unit||''}</strong></div><div class="stock-progress"><span style="width:${Math.min(100,(x.current/maxLow)*100)}%"></span><i style="left:${Math.min(100,(Number(x.minimum_stock||0)/maxLow)*100)}%"></i></div></div>`).join(''):'<div class="empty-state success">Todos os produtos estão acima do estoque mínimo.</div>'}</div>
+  <section class="dashboard-panel">
+   <div class="panel-heading"><div><h3>Estoque baixo</h3><p>Produtos abaixo da quantidade mínima</p></div><span class="panel-total">${s.low}</span></div>
+   <div class="dashboard-list">${lowProducts.length?lowProducts.map(x=>`<div class="stock-low-row"><div class="stock-low-head"><div><b>${x.name}</b><small>${x.category||'Sem categoria'}</small></div><strong>${Number(x.current).toLocaleString('pt-BR')} de ${Number(x.minimum_stock).toLocaleString('pt-BR')} ${x.unit||''}</strong></div><div class="stock-progress"><span style="width:${Math.min(100,(x.current/Math.max(Number(x.minimum_stock),1))*100)}%"></span></div></div>`).join(''):'<div class="empty-state">Nenhum produto abaixo do mínimo.</div>'}</div>
   </section>
   <section class="dashboard-panel recent-panel">
-   <div class="panel-heading"><div><small>ATIVIDADE</small><h3>Movimentações recentes</h3></div><button class="view-all" data-page="history">Ver histórico</button></div>
-   <div class="recent-table"><div class="recent-head"><span>Produto</span><span>Movimento</span><span>Quantidade</span><span>Data</span></div>${recent.length?recent.map(x=>`<div class="recent-row"><span><b>${productName(x.product_id)}</b><small>${x.reason||x.department||'Sem observação'}</small></span><span><em class="movement-badge ${movementClass(x.movement_type)}">${movementLabel(x.movement_type)}</em></span><strong>${Number(x.quantity||0).toLocaleString('pt-BR')}</strong><time>${fmtDateTime(x.created_at)}</time></div>`).join(''):'<div class="empty-state">Nenhuma movimentação registrada.</div>'}</div>
+   <div class="panel-heading"><div><h3>Movimentações recentes</h3><p>Últimas alterações registradas no estoque</p></div><button class="view-all" data-page="history">Ver todas</button></div>
+   <div class="recent-table"><div class="recent-head"><span>Produto</span><span>Tipo</span><span>Quantidade</span><span>Data</span></div>${recent.length?recent.map(x=>`<div class="recent-row"><span><b>${productName(x.product_id)}</b><small>${x.reason||x.department||'Sem observação'}</small></span><span><em class="movement-badge ${movementClass(x.movement_type)}">${movementLabel(x.movement_type)}</em></span><strong>${Number(x.quantity||0).toLocaleString('pt-BR')}</strong><time>${fmtDateTime(x.created_at)}</time></div>`).join(''):'<div class="empty-state">Nenhuma movimentação registrada.</div>'}</div>
   </section>
  </div>`
 }
