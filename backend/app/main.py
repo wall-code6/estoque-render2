@@ -58,6 +58,23 @@ def update_user(uid:int,d:dict,s:Session=Depends(get_db),u:User=Depends(admin)):
   if len(d['password'])<8:raise HTTPException(422,'A senha deve ter pelo menos 8 caracteres')
   x.password_hash=hash_pwd(d['password'])
  s.commit();s.refresh(x);return dto(x)
+@app.get('/api/v1/suppliers')
+def suppliers(s:Session=Depends(get_db),u:User=Depends(current)):return [dto(x) for x in s.scalars(select(Supplier).order_by(Supplier.name))]
+@app.post('/api/v1/suppliers',status_code=201)
+def add_supplier(d:dict,s:Session=Depends(get_db),u:User=Depends(current)):
+ name=str(d.get('name') or '').strip()
+ if not name:raise HTTPException(422,'Informe o nome do fornecedor')
+ x=Supplier(name=name,document=d.get('document') or None,phone=d.get('phone') or None,email=d.get('email') or None);s.add(x)
+ try:s.commit();s.refresh(x)
+ except IntegrityError:s.rollback();raise HTTPException(409,'Fornecedor já cadastrado')
+ return dto(x)
+@app.patch('/api/v1/suppliers/{sid}')
+def edit_supplier(sid:int,d:dict,s:Session=Depends(get_db),u:User=Depends(current)):
+ x=s.get(Supplier,sid)
+ if not x:raise HTTPException(404,'Fornecedor não encontrado')
+ for k in ('name','document','phone','email','active'):
+  if k in d:setattr(x,k,d[k] or None if k not in ('name','active') else d[k])
+ s.commit();s.refresh(x);return dto(x)
 @app.get('/api/v1/products')
 def products(search:str='',s:Session=Depends(get_db),u:User=Depends(current)):
  q=select(Product).where(Product.active==True)
@@ -65,13 +82,13 @@ def products(search:str='',s:Session=Depends(get_db),u:User=Depends(current)):
  return [dto(x) for x in s.scalars(q.order_by(Product.name))]
 @app.post('/api/v1/products',status_code=201)
 def add_product(d:dict,s:Session=Depends(get_db),u:User=Depends(current)):
- x=Product(**{k:v for k,v in d.items() if k in {'name','sku','category','unit','minimum_stock','controls_expiration'}});s.add(x);s.commit();s.refresh(x);return dto(x)
+ x=Product(**{k:v for k,v in d.items() if k in {'name','category','unit','minimum_stock','controls_expiration','supplier_id'}});s.add(x);s.commit();s.refresh(x);return dto(x)
 @app.patch('/api/v1/products/{pid}')
 def edit_product(pid:int,d:dict,s:Session=Depends(get_db),u:User=Depends(current)):
  x=s.get(Product,pid)
  if not x:raise HTTPException(404,'Produto não encontrado')
  for k,v in d.items():
-  if k in {'name','sku','category','unit','minimum_stock','controls_expiration','active'}:setattr(x,k,v)
+  if k in {'name','category','unit','minimum_stock','controls_expiration','supplier_id','active'}:setattr(x,k,v)
  s.commit();s.refresh(x);return dto(x)
 @app.get('/api/v1/batches')
 def batches(s:Session=Depends(get_db),u:User=Depends(current)):return [dto(x) for x in s.scalars(select(Batch).order_by(Batch.expiration_date,Batch.received_at))]
